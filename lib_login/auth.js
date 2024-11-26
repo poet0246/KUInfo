@@ -30,13 +30,6 @@ router.post('/login_process', (req, res) => {
   }
 });
 
-// 로그아웃
-router.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.redirect('/');
-  });
-});
-
 // 회원가입 페이지
 router.get('/register', (req, res) => {
   res.sendFile('public/signuppage.html', { root: __dirname + '/../' });
