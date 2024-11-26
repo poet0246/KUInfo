@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head><title>로그인 페이지</title>
+        <link rel="stylesheet" href="/login.css">
+    </head>
+    <body>
+        <h1>KUInfo</h1>
+        <hr>
+        <div class="login-wrapper">
+            <h2>로그인</h2>
+            <form method="post" action="/auth/login_process" id="login-form">
+                    <label>학번</label> <input type="text" name="hakbun"><br>
+                    <label>비밀번호</label> <input type="password" name="password"><br>
+                    <input type="submit" name="submit" value="로그인">
+                    <a href="/auth/register">
+                    <input type="button" value="회원가입">
+                    </a>
+            </form>
+        </div>
+    </body>
+</html>
