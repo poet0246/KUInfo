@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>버스 시간표</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      text-align: center;
+    }
+    section {
+      margin: 20px 0;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      width: 80%;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    th {
+      background-color: #8b0029;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>버스 시간표</h1>
+
+  <section id="schedule-jcw-osong">
+    <h2>조치원역 > 학교</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>출발 시간</th>
+          <th>남은 시간</th>
+        </tr>
+      </thead>
+      <tbody id="schedule-jcw-osong-body">
+        <!-- 데이터가 JavaScript로 추가됩니다 -->
+      </tbody>
+    </table>
+  </section>
+
+  <section id="schedule-osong-jcw">
+    <h2>학교 > 조치원역</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>출발 시간</th>
+          <th>남은 시간</th>
+        </tr>
+      </thead>
+      <tbody id="schedule-osong-jcw-body">
+        <!-- 데이터가 JavaScript로 추가됩니다 -->
+      </tbody>
+    </table>
+  </section>
+
+  <section id="reservation">
+    <h2>버스 예약</h2>
+    <form id="reservation-form">
+      <label for="direction">출발 방향:</label>
+      <select id="direction" name="direction">
+        <option value="조치원역 > 학교">조치원역 > 학교</option>
+        <option value="학교 > 조치원역">학교 > 조치원역</option>
+      </select>
+      <label for="time">출발 시간:</label>
+      <input type="time" id="time" name="time" required>
+      <button type="submit">예약</button>
+      <button type="button" id="view-schedule">시간표 보기</button>
+    </form>
+  </section>
+
+  <script>
+    // 버스 시간표 데이터
+    const weekdaySchedule = {
+      "학교 > 조치원역": ["08:50", "09:10", "09:30", "09:40", "09:50",
+                           "10:10", "10:30", "10:40", "11:00", "11:20",
+                           "11:40", "12:10", "12:30", "12:40", "13:10",
+                           "13:30", "13:50", "14:10", "14:30", "15:00",
+                           "15:10", "15:30", "15:50", "16:10", "16:30",
+                           "16:50", "17:10", "17:25", "17:40", "18:00",
+                           "18:25", "18:40", "19:10", "19:40", "20:10",
+                           "20:50"],
+      "조치원역 > 학교": ["08:20", "08:45", "09:00", "09:20", "09:40", 
+                         "09:50", "10:00", "10:20", "10:40", "10:50", 
+                         "11:10", "11:30", "11:50", "12:20", "12:40", 
+                         "12:50", "13:20", "13:40", "14:00", "14:20", 
+                         "14:40", "15:10", "15:20", "15:40", "16:00", 
+                         "16:20", "16:40", "17:00", "17:20", "17:35", 
+                         "17:50", "18:10", "18:35", "18:50", "19:20", 
+                         "19:50", "20:20", "21:00"]
+    };
+
+    const sundaySchedule = {
+      "학교 > 조치원역": ["17:00", "17:40", "18:40", "19:00", "19:40", 
+                         "20:20", "21:10"],
+      "조치원역 > 학교": ["16:30", "17:10", "17:50", "18:50", "19:10", 
+                         "19:50", "20:35", "21:20"]
+    };
+
+    const fridayExclusions = { 
+      "학교 > 조치원역": ["18:40", "19:10", "19:40", "20:10", "20:50"],
+      "조치원역 > 학교": ["18:50", "19:20", "19:50", "20:20", "21:00"]
+    };
+
+    let reservedBus = null;
+
+    const updateBusSchedule = () => {
+      const now = new Date();
+      const day = now.getDay(); // 0: Sunday, 5: Friday
+
+      let schedule = weekdaySchedule;
+
+      if (day === 0) {
+        schedule = sundaySchedule;
+      } else if (day === 5) {
+        schedule = {
+          "학교 > 조치원역": schedule["학교 > 조치원역"].filter(time => !fridayExclusions["학교 > 조치원역"].includes(time)),
+          "조치원역 > 학교": schedule["조치원역 > 학교"]
+        };
+      }
+
+      Object.entries(schedule).forEach(([direction, times]) => {
+        const tbodyId = direction === "조치원역 > 학교" ? "schedule-jcw-osong-body" : "schedule-osong-jcw-body";
+        const tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = ""; // 기존 내용을 초기화
+
+        const upcomingBuses = times
+          .map(time => {
+            const busTime = new Date();
+            const [hours, minutes] = time.split(":");
+            busTime.setHours(hours, minutes, 0, 0);
+
+            const diff = busTime - now;
+            if (diff > 0) {
+              const secondsLeft = Math.floor(diff / 1000);
+              const minutesLeft = Math.floor(secondsLeft / 60);
+              const secondsRemaining = secondsLeft % 60;
+              return {
+                time,
+                remainingTime: ` ${minutesLeft}분 ${secondsRemaining}초`,
+                diff
+              };
+            } else {
+              return null;
+            }
+          })
+          .filter(bus => bus !== null)
+          .sort((a, b) => a.diff - b.diff)
+          .slice(0, 3); // 가까운 3개만
+
+        upcomingBuses.forEach(bus => {
+          const row = `<tr>
+            <td>${bus.time}</td>
+            <td>${bus.remainingTime}</td>
+          </tr>`;
+
+          tbody.innerHTML += row;
+        });
+      });
+
+      if (reservedBus) {
+        const [reservedHours, reservedMinutes] = reservedBus.time.split(":");
+        const reservedTime = new Date();
+        reservedTime.setHours(reservedHours, reservedMinutes, 0, 0);
+
+        const diff = reservedTime - now;
+        if (diff > 0 && diff <= 10 * 60 * 1000) { // 10분 이내
+          if (Notification.permission === "granted") {
+            new Notification(`출발 시간(${reservedBus.time})이 10분 남았습니다!`);
+          } else {
+            alert(`출발 시간(${reservedBus.time})이 10분 남았습니다!`);
+          }
+          reservedBus = null; // 경고 후 초기화
+        }
+      }
+    };
+
+    // 예약 폼 처리
+    document.getElementById("reservation-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const direction = document.getElementById("direction").value;
+      const time = document.getElementById("time").value;
+
+      reservedBus = { direction, time };
+      alert(`예약되었습니다: ${direction}, ${time}`);
+    });
+
+    // 시간표 보기 버튼 처리
+    document.getElementById("view-schedule").addEventListener("click", () => {
+      window.open('Bus.jpg', '_blank', 'width=800,height=600');
+    });
+
+    // 알림 권한 요청
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
+
+    // 1초마다 업데이트
+    setInterval(updateBusSchedule, 1000);
+
+    // 초기 로드 시 실행
+    updateBusSchedule();
+  </script>
+</body>
+</html>
